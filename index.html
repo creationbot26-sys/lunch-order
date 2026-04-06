@@ -1,6 +1,29 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+  /* FireBase開始 */
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBZkYuqDM56yhlAW4_VwpUsYTcY4bwv0Bs",
+  authDomain: "lunch-order-4996d.firebaseapp.com",
+  projectId: "lunch-order-4996d",
+  storageBucket: "lunch-order-4996d.firebasestorage.app",
+  messagingSenderId: "181093785799",
+  appId: "1:181093785799:web:dca468ffa875c6fa9ddee2",
+  measurementId: "G-6SSR9K4XGX"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+   /* FireBase結束 */
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>辦公室點餐系統</title>
@@ -245,6 +268,9 @@ body { background: var(--bg); font-family: 'Helvetica Neue', sans-serif; color: 
 <div class="toast" id="toast"></div>
 
 <script>
+  /* 刪除原本可能有的簡單 Script，改入以下模組： */
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 // ── 預設菜單 ──────────────────────────────────────────
 const DEFAULT_MENU = [
   { id:'a1', category:'主食', name:'排骨便當', price:80 },
@@ -267,30 +293,53 @@ let state = {
 };
 
 // ── localStorage ──────────────────────────────────────
-function loadState() {
-  try {
-    const raw = localStorage.getItem('lunch_v2');
-    if (raw) {
-      const s = JSON.parse(raw);
-      state.orders   = Array.isArray(s.orders)  ? s.orders  : [];
-      state.deadline = s.deadline || null;
-      state.status   = s.status === 'closed' ? 'closed' : 'open';
-      state.menu     = Array.isArray(s.menu) && s.menu.length > 0
-                       ? s.menu : JSON.parse(JSON.stringify(DEFAULT_MENU));
-    } else {
-      state.menu = JSON.parse(JSON.stringify(DEFAULT_MENU));
-    }
-  } catch(e) { state.menu = JSON.parse(JSON.stringify(DEFAULT_MENU)); }
-}
-function saveState() {
-  try {
-    localStorage.setItem('lunch_v2', JSON.stringify({
-      orders: state.orders, deadline: state.deadline,
-      status: state.status, menu: state.menu
-    }));
-  } catch(e) { showToast('⚠️ 儲存失敗：瀏覽器空間不足'); }
-}
+// 1. 你的 Firebase 配置 (請貼上你從後台複製的內容)
+const firebaseConfig = {
+  apiKey: "AIzaSyBZkYuqDM56yhlAW4_VwpUsYTcY4bwv0Bs",
+  authDomain: "lunch-order-4996d.firebaseapp.com",
+  databaseURL: "lunch-order-4996d-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "lunch-order-4996d",
+  storageBucket: "lunch-order-4996d.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};
 
+// 2. 初始化 Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 3. 全域狀態監聽：這段取代原本的 loadState()
+// 當雲端資料有變動時，所有人的畫面會自動觸發此函式
+db.ref('lunch_system').on('value', (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    state.orders = data.orders || [];
+    state.deadline = data.deadline || null;
+    state.status = data.status || 'open';
+    state.menu = (data.menu && data.menu.length > 0) ? data.menu : JSON.parse(JSON.stringify(DEFAULT_MENU));
+    
+    // 重新渲染所有畫面
+    renderDeadline();
+    renderMenu();
+    if (document.getElementById('tab-orders').style.display !== 'none') renderOrders();
+    if (state.adminLoggedIn) {
+      renderStats();
+      renderAdminOrders();
+      renderMenuEdit();
+    }
+  }
+});
+
+// 4. 儲存狀態：取代原本的 saveState()
+// 現在改為將資料推送到雲端
+function saveState() {
+  db.ref('lunch_system').set({
+    orders: state.orders,
+    deadline: state.deadline,
+    status: state.status,
+    menu: state.menu
+  }).catch(e => showToast('⚠️ 雲端儲存失敗'));
+}
 // ── 工具 ──────────────────────────────────────────────
 function isOpen() {
   if (state.status === 'closed') return false;
