@@ -320,7 +320,7 @@ function renderDeadline() {
   if (state.deadline) {
     const d = new Date(state.deadline);
     el.textContent = d.toLocaleDateString('zh-TW',{month:'short',day:'numeric'})
-      + ' ' + d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+      + ' ' + d.toLocaleTimeString('zh-TW',{timeZone: 'Asia/Taipei',hour:'2-digit',minute:'2-digit'});
   } else { el.textContent = '尚未設定'; }
   if (isOpen()) { badge.textContent = '開放中'; badge.className = 'deadline-badge'; }
   else          { badge.textContent = '已截止'; badge.className = 'deadline-badge closed'; }
@@ -412,7 +412,7 @@ function makeOrderCard(o, isAdmin) {
     btnWrap.appendChild(btnEdit); btnWrap.appendChild(btnDel); hdr.appendChild(btnWrap);
   } else {
     const timeEl = document.createElement('span'); timeEl.className = 'order-time';
-    safeText(timeEl, new Date(o.time).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+    safeText(timeEl, new Date(o.time).toLocaleTimeString('zh-TW',{timeZone: 'Asia/Taipei',hour:'2-digit',minute:'2-digit'}));
     hdr.appendChild(timeEl);
   }
   el.appendChild(hdr);
@@ -536,10 +536,12 @@ function renderMenuEdit() {
   state.menu.forEach((item, idx) => {
     const el = document.createElement('div'); el.className = 'menu-edit-item';
     el.innerHTML =
-      '<input type="text" class="cat-input" value="' + esc(item.category) + '" placeholder="分類" maxlength="8" onchange="updateMenuItem(' + idx + ','category',this.value)" />' +
-      '<input type="text" value="' + esc(item.name) + '" placeholder="品項名稱" maxlength="16" onchange="updateMenuItem(' + idx + ','name',this.value)" />' +
-      '<input type="number" class="price-input" value="' + item.price + '" placeholder="價格" min="0" max="9999" onchange="updateMenuItem(' + idx + ','price',this.value)" />' +
-      '<button class="btn-sm btn-del" onclick="removeMenuItem(' + idx + ')">刪除</button>';
+      `
+  <input type="text" class="cat-input" value="${esc(item.category)}" placeholder="分類" maxlength="8" onchange="updateMenuItem(${idx}, 'category', this.value)" />
+  <input type="text" value="${esc(item.name)}" placeholder="品項名稱" maxlength="16" onchange="updateMenuItem(${idx}, 'name', this.value)" />
+  <input type="number" class="price-input" value="${item.price}" placeholder="價格" min="0" max="9999" onchange="updateMenuItem(${idx}, 'price', this.value)" />
+  <button class="btn-sm btn-del" onclick="removeMenuItem(${idx})">刪除</button>
+`;
     c.appendChild(el);
   });
 }
@@ -644,27 +646,39 @@ function clearAll() {
 // ── 匯出 ─────────────────────────────────────────────
 function exportData() {
   if (state.orders.length === 0) { showToast('目前尚無點餐資料'); return; }
-  let txt = '=== 點餐清單 ===
-時間：' + new Date().toLocaleString('zh-TW') + '
-
-';
-  state.orders.forEach((o,i) => {
-    txt += (i+1) + '. ' + o.name + '：' + o.items.map(it => it.name + (it.qty>1?' x'+it.qty:'')).join('、');
-    if (o.note) txt += '（' + o.note + '）'; txt += '
-';
+  
+  let txt = `=== 點餐清單 ===\n時間：${new Date().toLocaleString('zh-TW')}\n\n`;
+  
+  state.orders.forEach((o, i) => {
+    txt += `${i + 1}. ${o.name}：${o.items.map(it => it.name + (it.qty > 1 ? ' x' + it.qty : '')).join('、')}`;
+    if (o.note) txt += `（${o.note}）`; 
+    txt += '\n';
   });
-  txt += '
---- 品項統計 ---
-';
+  
+  txt += '\n--- 品項統計 ---\n';
   const ic = {};
-  state.orders.forEach(o => o.items.forEach(i => { ic[i.name]=(ic[i.name]||0)+i.qty; }));
-  Object.entries(ic).sort((a,b)=>b[1]-a[1]).forEach(([n,c]) => { txt += n + '：' + c + ' 份
-'; });
+  state.orders.forEach(o => o.items.forEach(i => { ic[i.name] = (ic[i.name] || 0) + i.qty; }));
+  Object.entries(ic).sort((a, b) => b[1] - a[1]).forEach(([n, c]) => { 
+    txt += `${n}：${c} 份\n`; 
+  });
+  
   navigator.clipboard.writeText(txt)
     .then(() => showToast('已複製！可直接貼到LINE'))
-    .catch(() => { const w = window.open(''); if(w){ w.document.write('<pre>'+txt.replace(/</g,'&lt;')+'</pre>'); } });
+    .catch(() => { 
+      const w = window.open(''); 
+      if(w){ w.document.write('<pre>' + txt.replace(/</g,'&lt;') + '</pre>'); } 
+    });
 }
-
+// 擴充一個適合貼進 Excel 的匯出功能
+function exportForExcel() {
+  let txt = "姓名\t品項\t單價\t數量\t小計\t備註\n"; // Tab 分隔
+  state.orders.forEach(o => {
+    o.items.forEach(i => {
+      txt += `${o.name}\t${i.name}\t${i.price}\t${i.qty}\t${i.price * i.qty}\t${o.note || ''}\n`;
+    });
+  });
+  navigator.clipboard.writeText(txt).then(() => showToast('已複製試算表格式！請至 Excel 貼上'));
+}
 // ── Tab 切換 ──────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => {
