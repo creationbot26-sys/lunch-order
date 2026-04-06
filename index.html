@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>辦公室點餐系統 - 雲端同步版</title>
+<title>辦公室點餐系統</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -77,7 +77,7 @@ body { background: var(--bg); font-family: 'Helvetica Neue', sans-serif; color: 
 <div class="app">
   <div class="header">
     <h1>辦公室點餐系統</h1>
-    <p>資料即時雲端同步中</p>
+    <p>資料同步中</p>
   </div>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('order')">點餐</button>
@@ -127,7 +127,7 @@ body { background: var(--bg); font-family: 'Helvetica Neue', sans-serif; color: 
         <div style="font-size:13px; margin-bottom:10px;">狀態：
           <select id="status-select"><option value="open">開放點餐</option><option value="closed">停止點餐</option></select>
         </div>
-        <button class="export-btn" onclick="saveSettings()">儲存並同步到雲端</button>
+        <button class="export-btn" onclick="saveSettings()">儲存並同步</button>
       </div>
       <div class="card">
         <div class="card-title"><span class="dot"></span>菜單管理</div>
