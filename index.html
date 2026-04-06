@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>辦公室點餐系統</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #FAF8F3; --card: #FFFFFF; --accent: #C8956A; --accent-light: #F5EDE4;
+  --border: #E8E2D9; --text: #3A322A; --muted: #8C7E72;
+  --danger: #C0392B; --success: #2E7D52; --warning: #B8860B; --radius: 12px;
+}
+body { background: var(--bg); font-family: 'Helvetica Neue', sans-serif; color: var(--text); }
+.app { max-width: 680px; margin: 0 auto; padding: 16px; }
+.header { text-align: center; padding: 20px 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.header h1 { font-family: Georgia, serif; font-size: 22px; font-weight: normal; letter-spacing: 0.5px; }
+.header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 20px; background: #EDE8E1; border-radius: 10px; padding: 4px; }
+.tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--muted); transition: all 0.2s; }
+.tab.active { background: var(--card); color: var(--text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 14px; }
+.card-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; flex-shrink: 0; }
+.deadline-bar { background: var(--accent-light); border: 1px solid #DFC9B0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.deadline-label { font-size: 12px; color: var(--muted); }
+.deadline-time { font-size: 13px; font-weight: 500; color: var(--accent); }
+.deadline-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--success); color: white; }
+.deadline-badge.closed { background: var(--danger); }
+.name-row input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); outline: none; margin-bottom: 14px; }
+.name-row input:focus { border-color: var(--accent); }
+.menu-section { margin-bottom: 14px; }
+.menu-section-title { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; background: var(--bg); transition: border-color 0.15s; }
+.menu-item:hover { border-color: var(--accent); }
+.menu-item.selected { border-color: var(--accent); background: var(--accent-light); }
+.item-name { font-size: 14px; font-weight: 500; }
+.item-price { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.item-controls { display: flex; align-items: center; gap: 8px; }
+.qty-btn { width: 26px; height: 26px; border: 1px solid var(--border); background: white; border-radius: 6px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); transition: all 0.15s; line-height: 1; }
+.qty-btn:hover { background: var(--accent-light); border-color: var(--accent); }
+.qty-num { font-size: 14px; font-weight: 500; min-width: 20px; text-align: center; }
+.note-input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--text); outline: none; resize: none; height: 60px; margin-bottom: 14px; }
+.note-input:focus { border-color: var(--accent); }
+.submit-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: 500; transition: opacity 0.15s; }
+.submit-btn:hover { opacity: 0.88; }
+.submit-btn:disabled { background: var(--muted); cursor: not-allowed; opacity: 0.6; }
+.order-item { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); margin-bottom: 8px; }
+.order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.order-person { font-size: 14px; font-weight: 500; }
+.order-time { font-size: 11px; color: var(--muted); }
+.order-details { font-size: 13px; color: var(--muted); }
+.order-note { font-size: 12px; color: var(--warning); margin-top: 4px; font-style: italic; }
+.btn-sm { font-size: 11px; background: none; border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.btn-edit { color: var(--accent); border: 1px solid #DFC9B0; margin-right: 4px; }
+.btn-edit:hover { background: var(--accent-light); }
+.btn-del { color: var(--danger); border: 1px solid #E8C0BB; }
+.btn-del:hover { background: #FCF0EF; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stat-card { background: var(--accent-light); border-radius: 10px; padding: 12px; text-align: center; }
+.stat-num { font-size: 24px; font-weight: 500; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.summary-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.summary-item:last-child { border-bottom: none; }
+.summary-bar-wrap { flex: 1; margin: 0 12px; height: 6px; background: #EDE8E1; border-radius: 3px; }
+.summary-bar { height: 6px; background: var(--accent); border-radius: 3px; }
+.summary-count { font-weight: 500; color: var(--accent); min-width: 30px; text-align: right; }
+.admin-login { text-align: center; padding: 20px 0; }
+.admin-login input { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); outline: none; width: 200px; text-align: center; letter-spacing: 4px; }
+.admin-login button { display: block; margin: 10px auto 0; padding: 9px 24px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.export-btn { width: 100%; margin-top: 10px; padding: 10px; border: 1px solid var(--accent); color: var(--accent); background: white; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.export-btn:hover { background: var(--accent-light); }
+.export-btn.danger { border-color: var(--danger); color: var(--danger); }
+.export-btn.danger:hover { background: #FCF0EF; }
+.empty-notice { text-align: center; padding: 24px; color: var(--muted); font-size: 14px; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
+.setting-row label { color: var(--muted); }
+.setting-row input[type="datetime-local"], .setting-row select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--text); outline: none; }
+.setting-row input[type="datetime-local"]:focus, .setting-row select:focus { border-color: var(--accent); }
+.setting-save { margin-top: 8px; padding: 8px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
+
+/* 菜單編輯 */
+.menu-edit-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.menu-edit-item input { flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: white; color: var(--text); outline: none; min-width: 0; }
+.menu-edit-item input:focus { border-color: var(--accent); }
+.menu-edit-item input.price-input { width: 70px; flex: none; }
+.menu-edit-item input.cat-input { width: 80px; flex: none; }
+.add-item-row { display: flex; gap: 8px; margin-top: 8px; }
+.add-item-row input { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--text); outline: none; min-width: 0; }
+.add-item-row input:focus { border-color: var(--accent); }
+.add-item-row input.price-input { width: 80px; flex: none; }
+.add-item-row input.cat-input { width: 90px; flex: none; }
+.add-item-row button { padding: 7px 14px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.section-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+/* 編輯點餐 Modal */
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+.modal-backdrop.show { display: flex; }
+.modal { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; width: calc(100% - 32px); max-width: 480px; max-height: 80vh; overflow-y: auto; }
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); line-height: 1; }
+.modal-section { font-size: 12px; color: var(--muted); font-weight: 500; margin: 10px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.modal-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; background: var(--bg); }
+.modal-menu-item.selected { border-color: var(--accent); background: var(--accent-light); }
+.modal-item-controls { display: flex; align-items: center; gap: 8px; }
+.modal-name-input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text); outline: none; margin-bottom: 8px; }
+.modal-name-input:focus { border-color: var(--accent); }
+.modal-note-input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--text); outline: none; resize: none; height: 56px; margin-bottom: 8px; }
+.modal-note-input:focus { border-color: var(--accent); }
+.modal-footer { display: flex; gap: 8px; margin-top: 14px; }
+.modal-footer button { flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none; }
+.btn-cancel { background: var(--bg); border: 1px solid var(--border) !important; color: var(--muted); }
+.btn-save { background: var(--accent); color: white; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 200; white-space: nowrap; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>辦公室點餐系統</h1>
+    <p id="header-sub">今日午餐集點中</p>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('order')">點餐</button>
+    <button class="tab" onclick="switchTab('orders')">點餐列表</button>
+    <button class="tab" onclick="switchTab('admin')">管理者</button>
+  </div>
+
+  <!-- 點餐分頁 -->
+  <div id="tab-order">
+    <div class="deadline-bar">
+      <div><div class="deadline-label">截止時間</div><div class="deadline-time" id="deadline-display">--</div></div>
+      <span class="deadline-badge" id="status-badge">開放中</span>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>填寫姓名</div>
+      <div class="name-row"><input type="text" id="name-input" placeholder="請輸入您的姓名" maxlength="10" /></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>選擇餐點</div>
+      <div id="menu-container"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>備註</div>
+      <textarea class="note-input" id="note-input" placeholder="過敏食材、特殊需求請在此說明..."></textarea>
+      <button class="submit-btn" id="submit-btn" onclick="submitOrder()">確認送出點餐</button>
+    </div>
+  </div>
+
+  <!-- 點餐列表分頁 -->
+  <div id="tab-orders" style="display:none;">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>已點餐名單</div>
+      <div id="orders-list"></div>
+    </div>
+  </div>
+
+  <!-- 管理者分頁 -->
+  <div id="tab-admin" style="display:none;">
+    <div id="admin-login-section" class="card">
+      <div class="card-title"><span class="dot"></span>管理者登入</div>
+      <div class="admin-login">
+        <input type="password" id="admin-pwd" placeholder="輸入密碼" maxlength="6" onkeydown="if(event.key==='Enter')adminLogin()" />
+        <button onclick="adminLogin()">進入管理</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">預設密碼：1234</p>
+      </div>
+    </div>
+    <div id="admin-panel" style="display:none;">
+
+      <!-- 點餐設定 -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>點餐設定</div>
+        <div class="setting-row"><label>截止日期時間</label><input type="datetime-local" id="deadline-input" /></div>
+        <div class="setting-row">
+          <label>點餐狀態</label>
+          <select id="status-select">
+            <option value="open">開放點餐</option>
+            <option value="closed">停止點餐</option>
+          </select>
+        </div>
+        <button class="setting-save" onclick="saveSettings()">儲存設定</button>
+      </div>
+
+      <!-- 菜單管理 -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>菜單管理</div>
+        <p class="section-note">可新增、修改、刪除品項，變更後立即套用至點餐頁面。</p>
+        <div id="menu-edit-container"></div>
+        <div class="add-item-row" style="margin-top:12px;">
+          <input type="text" id="new-item-name" class="cat-input" placeholder="分類" maxlength="8" />
+          <input type="text" id="new-item-display" placeholder="品項名稱" maxlength="16" />
+          <input type="number" id="new-item-price" class="price-input" placeholder="價格" min="0" />
+          <button onclick="addMenuItem()">新增</button>
+        </div>
+      </div>
+
+      <!-- 統計摘要 -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>統計摘要</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">總人數</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-items">0</div><div class="stat-label">總份數</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-amount">$0</div><div class="stat-label">預估金額</div></div>
+        </div>
+        <div class="card-title" style="margin-top:4px;"><span class="dot"></span>品項統計</div>
+        <div id="summary-items"></div>
+        <button class="export-btn" onclick="exportData()">匯出點餐清單（複製後貼到LINE）</button>
+      </div>
+
+      <!-- 管理點餐 -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>管理點餐</div>
+        <div id="admin-orders-list"></div>
+      </div>
+
+      <button class="export-btn danger" onclick="clearAll()">清除所有點餐（開始新一輪）</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯點餐 Modal -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">
+      編輯點餐
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-section">姓名</div>
+    <input type="text" class="modal-name-input" id="modal-name" placeholder="姓名" maxlength="10" />
+    <div class="modal-section">餐點選擇</div>
+    <div id="modal-menu"></div>
+    <div class="modal-section">備註</div>
+    <textarea class="modal-note-input" id="modal-note" placeholder="備註..."></textarea>
+    <div class="modal-footer">
+      <button class="modal-footer btn-cancel" onclick="closeModal()">取消</button>
+      <button class="modal-footer btn-save" onclick="saveEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 預設菜單 ──────────────────────────────────────────
+const DEFAULT_MENU = [
+  { id:'a1', category:'主食', name:'排骨便當', price:80 },
+  { id:'a2', category:'主食', name:'雞腿便當', price:90 },
+  { id:'a3', category:'主食', name:'素食便當', price:75 },
+  { id:'a4', category:'主食', name:'控肉飯',   price:70 },
+  { id:'b1', category:'麵食', name:'牛肉麵',   price:110 },
+  { id:'b2', category:'麵食', name:'乾麵（小）', price:50 },
+  { id:'c1', category:'飲料', name:'紅茶',     price:20 },
+  { id:'c2', category:'飲料', name:'綠茶',     price:20 },
+  { id:'c3', category:'飲料', name:'水',       price:0  },
+];
+
+let state = {
+  orders: [],
+  deadline: null,
+  status: 'open',
+  menu: [],
+  adminLoggedIn: false,
+  qty: {},
+  editingId: null,
+  editQty: {},
+};
+
+// ── localStorage ──────────────────────────────────────
+function loadState() {
+  try {
+    const raw = localStorage.getItem('lunch_v2');
+    if (raw) {
+      const s = JSON.parse(raw);
+      state.orders  = s.orders  || [];
+      state.deadline = s.deadline || null;
+      state.status  = s.status  || 'open';
+      state.menu    = s.menu    || JSON.parse(JSON.stringify(DEFAULT_MENU));
+    } else {
+      state.menu = JSON.parse(JSON.stringify(DEFAULT_MENU));
+    }
+  } catch(e) { state.menu = JSON.parse(JSON.stringify(DEFAULT_MENU)); }
+}
+function saveState() {
+  try { localStorage.setItem('lunch_v2', JSON.stringify({ orders:state.orders, deadline:state.deadline, status:state.status, menu:state.menu })); } catch(e){}
+}
+
+// ── 工具 ──────────────────────────────────────────────
+function isOpen() {
+  if (state.status === 'closed') return false;
+  if (state.deadline && new Date() > new Date(state.deadline)) return false;
+  return true;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function uid() { return 'm' + Date.now() + Math.random().toString(36).slice(2,6); }
+function groupMenu(menu) {
+  const map = {};
+  menu.forEach(item => { if (!map[item.category]) map[item.category] = []; map[item.category].push(item); });
+  return map;
+}
+
+// ── 截止顯示 ─────────────────────────────────────────
+function renderDeadline() {
+  const el = document.getElementById('deadline-display');
+  const badge = document.getElementById('status-badge');
+  if (state.deadline) {
+    const d = new Date(state.deadline);
+    el.textContent = d.toLocaleDateString('zh-TW',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  } else { el.textContent = '尚未設定'; }
+  if (isOpen()) { badge.textContent = '開放中'; badge.className = 'deadline-badge'; }
+  else { badge.textContent = '已截止'; badge.className = 'deadline-badge closed'; }
+  const btn = document.getElementById('submit-btn');
+  if (btn) btn.disabled = !isOpen();
+}
+
+// ── 點餐菜單 ─────────────────────────────────────────
+function renderMenu() {
+  const c = document.getElementById('menu-container'); c.innerHTML = '';
+  const grouped = groupMenu(state.menu);
+  Object.entries(grouped).forEach(([cat, items]) => {
+    const sec = document.createElement('div'); sec.className = 'menu-section';
+    sec.innerHTML = '<div class="menu-section-title">' + cat + '</div>';
+    items.forEach(item => {
+      const qty = state.qty[item.id] || 0;
+      const el = document.createElement('div');
+      el.className = 'menu-item' + (qty > 0 ? ' selected' : '');
+      el.id = 'item-' + item.id;
+      el.innerHTML =
+        '<div><div class="item-name">' + item.name + '</div><div class="item-price">' + (item.price > 0 ? '$' + item.price : '免費') + '</div></div>' +
+        '<div class="item-controls">' +
+        '<button class="qty-btn" onclick="changeQty(\'' + item.id + '\',-1)">−</button>' +
+        '<span class="qty-num" id="qty-' + item.id + '">' + qty + '</span>' +
+        '<button class="qty-btn" onclick="changeQty(\'' + item.id + '\',1)">+</button>' +
+        '</div>';
+      sec.appendChild(el);
+    });
+    c.appendChild(sec);
+  });
+}
+function changeQty(id, delta) {
+  state.qty[id] = Math.max(0, (state.qty[id]||0) + delta);
+  const el = document.getElementById('qty-' + id); if (el) el.textContent = state.qty[id];
+  const item = document.getElementById('item-' + id); if (item) item.className = 'menu-item' + (state.qty[id] > 0 ? ' selected' : '');
+}
+
+// ── 送出點餐 ─────────────────────────────────────────
+function submitOrder() {
+  if (!isOpen()) { showToast('點餐已截止，無法送出'); return; }
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) { showToast('請輸入您的姓名'); return; }
+  const items = [];
+  state.menu.forEach(item => { if ((state.qty[item.id]||0) > 0) items.push({id:item.id, name:item.name, qty:state.qty[item.id], price:item.price}); });
+  if (items.length === 0) { showToast('請至少選擇一項餐點'); return; }
+  const note = document.getElementById('note-input').value.trim();
+  state.orders.push({ name, items, note, time: new Date().toISOString(), id: Date.now() });
+  saveState(); state.qty = {};
+  document.getElementById('name-input').value = '';
+  document.getElementById('note-input').value = '';
+  renderMenu(); showToast('點餐送出成功！');
+}
+
+// ── 點餐列表（一般） ──────────────────────────────────
+function renderOrders() {
+  const c = document.getElementById('orders-list');
+  if (state.orders.length === 0) { c.innerHTML = '<div class="empty-notice">目前尚無人點餐</div>'; return; }
+  c.innerHTML = '';
+  state.orders.forEach(o => {
+    const el = document.createElement('div'); el.className = 'order-item';
+    const itemStr = o.items.map(i => i.name + (i.qty > 1 ? ' x'+i.qty : '')).join('、');
+    const t = new Date(o.time).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    el.innerHTML =
+      '<div class="order-header"><span class="order-person">' + o.name + '</span><span class="order-time">' + t + '</span></div>' +
+      '<div class="order-details">' + itemStr + '</div>' +
+      (o.note ? '<div class="order-note">備註：' + o.note + '</div>' : '');
+    c.appendChild(el);
+  });
+}
+
+// ── 管理點餐列表 ──────────────────────────────────────
+function renderAdminOrders() {
+  const c = document.getElementById('admin-orders-list');
+  if (state.orders.length === 0) { c.innerHTML = '<div class="empty-notice">目前尚無點餐</div>'; return; }
+  c.innerHTML = '';
+  state.orders.forEach(o => {
+    const el = document.createElement('div'); el.className = 'order-item';
+    const itemStr = o.items.map(i => i.name + (i.qty > 1 ? ' x'+i.qty : '')).join('、');
+    el.innerHTML =
+      '<div class="order-header"><span class="order-person">' + o.name + '</span>' +
+      '<div><button class="btn-sm btn-edit" onclick="openEdit(' + o.id + ')">編輯</button>' +
+      '<button class="btn-sm btn-del" onclick="deleteOrder(' + o.id + ')">刪除</button></div></div>' +
+      '<div class="order-details">' + itemStr + '</div>' +
+      (o.note ? '<div class="order-note">備註：' + o.note + '</div>' : '');
+    c.appendChild(el);
+  });
+}
+
+function deleteOrder(id) {
+  if (!confirm('確定刪除此筆點餐？')) return;
+  state.orders = state.orders.filter(o => o.id !== id);
+  saveState(); renderAdminOrders(); renderStats(); renderOrders(); showToast('已刪除');
+}
+
+// ── 編輯點餐 Modal ────────────────────────────────────
+function openEdit(id) {
+  const o = state.orders.find(x => x.id === id); if (!o) return;
+  state.editingId = id;
+  state.editQty = {};
+  o.items.forEach(i => { state.editQty[i.id] = i.qty; });
+  document.getElementById('modal-name').value = o.name;
+  document.getElementById('modal-note').value = o.note || '';
+  renderModalMenu();
+  document.getElementById('edit-modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('show');
+  state.editingId = null; state.editQty = {};
+}
+function renderModalMenu() {
+  const c = document.getElementById('modal-menu'); c.innerHTML = '';
+  const grouped = groupMenu(state.menu);
+  Object.entries(grouped).forEach(([cat, items]) => {
+    const label = document.createElement('div'); label.className = 'modal-section'; label.textContent = cat;
+    c.appendChild(label);
+    items.forEach(item => {
+      const qty = state.editQty[item.id] || 0;
+      const el = document.createElement('div');
+      el.className = 'modal-menu-item' + (qty > 0 ? ' selected' : '');
+      el.id = 'medit-' + item.id;
+      el.innerHTML =
+        '<div><div class="item-name">' + item.name + '</div><div class="item-price">' + (item.price > 0 ? '$' + item.price : '免費') + '</div></div>' +
+        '<div class="modal-item-controls">' +
+        '<button class="qty-btn" onclick="changeEditQty(\'' + item.id + '\',-1)">−</button>' +
+        '<span class="qty-num" id="eqty-' + item.id + '">' + qty + '</span>' +
+        '<button class="qty-btn" onclick="changeEditQty(\'' + item.id + '\',1)">+</button>' +
+        '</div>';
+      c.appendChild(el);
+    });
+  });
+}
+function changeEditQty(id, delta) {
+  state.editQty[id] = Math.max(0, (state.editQty[id]||0) + delta);
+  const el = document.getElementById('eqty-' + id); if (el) el.textContent = state.editQty[id];
+  const item = document.getElementById('medit-' + id); if (item) item.className = 'modal-menu-item' + (state.editQty[id] > 0 ? ' selected' : '');
+}
+function saveEdit() {
+  const name = document.getElementById('modal-name').value.trim();
+  if (!name) { showToast('請輸入姓名'); return; }
+  const items = [];
+  state.menu.forEach(item => { if ((state.editQty[item.id]||0) > 0) items.push({id:item.id, name:item.name, qty:state.editQty[item.id], price:item.price}); });
+  if (items.length === 0) { showToast('請至少選擇一項餐點'); return; }
+  const note = document.getElementById('modal-note').value.trim();
+  const idx = state.orders.findIndex(o => o.id === state.editingId);
+  if (idx !== -1) { state.orders[idx] = { ...state.orders[idx], name, items, note }; }
+  saveState(); closeModal(); renderAdminOrders(); renderStats(); renderOrders(); showToast('點餐已更新');
+}
+
+// ── 統計 ─────────────────────────────────────────────
+function renderStats() {
+  document.getElementById('stat-total').textContent = state.orders.length;
+  let totalItems = 0, totalAmt = 0; const itemCount = {};
+  state.orders.forEach(o => { o.items.forEach(i => { totalItems += i.qty; totalAmt += i.price * i.qty; itemCount[i.name] = (itemCount[i.name]||0) + i.qty; }); });
+  document.getElementById('stat-items').textContent = totalItems;
+  document.getElementById('stat-amount').textContent = '$' + totalAmt;
+  const c = document.getElementById('summary-items'); c.innerHTML = '';
+  const sorted = Object.entries(itemCount).sort((a,b) => b[1]-a[1]);
+  const max = sorted.length > 0 ? sorted[0][1] : 1;
+  sorted.forEach(([name, cnt]) => {
+    const el = document.createElement('div'); el.className = 'summary-item';
+    el.innerHTML = '<span>' + name + '</span><div class="summary-bar-wrap"><div class="summary-bar" style="width:' + Math.round((cnt/max)*100) + '%"></div></div><span class="summary-count">' + cnt + '</span>';
+    c.appendChild(el);
+  });
+  if (sorted.length === 0) c.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">尚無數據</div>';
+}
+
+// ── 菜單管理（後台） ──────────────────────────────────
+function renderMenuEdit() {
+  const c = document.getElementById('menu-edit-container'); c.innerHTML = '';
+  state.menu.forEach((item, idx) => {
+    const el = document.createElement('div'); el.className = 'menu-edit-item';
+    el.innerHTML =
+      '<input type="text" class="cat-input" value="' + esc(item.category) + '" placeholder="分類" maxlength="8" onchange="updateMenuItem(' + idx + ',\'category\',this.value)" />' +
+      '<input type="text" value="' + esc(item.name) + '" placeholder="品項名稱" maxlength="16" onchange="updateMenuItem(' + idx + ',\'name\',this.value)" />' +
+      '<input type="number" class="price-input" value="' + item.price + '" placeholder="價格" min="0" onchange="updateMenuItem(' + idx + ',\'price\',this.value)" />' +
+      '<button class="btn-sm btn-del" onclick="removeMenuItem(' + idx + ')">刪除</button>';
+    c.appendChild(el);
+  });
+}
+function esc(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function updateMenuItem(idx, field, val) {
+  if (field === 'price') state.menu[idx][field] = parseInt(val) || 0;
+  else state.menu[idx][field] = val.trim();
+  saveState(); renderMenu();
+}
+function removeMenuItem(idx) {
+  if (!confirm('確定刪除「' + state.menu[idx].name + '」？')) return;
+  state.menu.splice(idx, 1);
+  saveState(); renderMenuEdit(); renderMenu(); showToast('品項已刪除');
+}
+function addMenuItem() {
+  const cat  = document.getElementById('new-item-name').value.trim();
+  const name = document.getElementById('new-item-display').value.trim();
+  const price = parseInt(document.getElementById('new-item-price').value) || 0;
+  if (!cat || !name) { showToast('請填寫分類與品項名稱'); return; }
+  state.menu.push({ id: uid(), category: cat, name, price });
+  saveState(); renderMenuEdit(); renderMenu();
+  document.getElementById('new-item-name').value = '';
+  document.getElementById('new-item-display').value = '';
+  document.getElementById('new-item-price').value = '';
+  showToast('品項已新增');
+}
+
+// ── 管理者登入 ────────────────────────────────────────
+function adminLogin() {
+  if (document.getElementById('admin-pwd').value === '1234') {
+    state.adminLoggedIn = true;
+    document.getElementById('admin-login-section').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    const di = document.getElementById('deadline-input');
+    if (state.deadline) di.value = state.deadline.slice(0,16);
+    document.getElementById('status-select').value = state.status;
+    renderStats(); renderAdminOrders(); renderMenuEdit();
+  } else { showToast('密碼錯誤'); }
+}
+function saveSettings() {
+  const di = document.getElementById('deadline-input').value;
+  state.deadline = di ? new Date(di).toISOString() : null;
+  state.status = document.getElementById('status-select').value;
+  saveState(); renderDeadline(); showToast('設定已儲存');
+}
+function clearAll() {
+  if (!confirm('確定要清除所有點餐嗎？菜單不受影響。')) return;
+  state.orders = []; saveState();
+  renderAdminOrders(); renderStats(); renderOrders(); showToast('已清除所有點餐');
+}
+
+// ── 匯出 ─────────────────────────────────────────────
+function exportData() {
+  let txt = '=== 點餐清單 ===\n時間：' + new Date().toLocaleString('zh-TW') + '\n\n';
+  state.orders.forEach((o,i) => {
+    txt += (i+1) + '. ' + o.name + '：' + o.items.map(it => it.name + (it.qty>1?' x'+it.qty:'')).join('、');
+    if (o.note) txt += '（' + o.note + '）'; txt += '\n';
+  });
+  txt += '\n--- 品項統計 ---\n';
+  const ic = {};
+  state.orders.forEach(o => o.items.forEach(i => { ic[i.name]=(ic[i.name]||0)+i.qty; }));
+  Object.entries(ic).sort((a,b)=>b[1]-a[1]).forEach(([n,c]) => { txt += n + '：' + c + ' 份\n'; });
+  navigator.clipboard.writeText(txt).then(() => showToast('已複製！可直接貼到LINE')).catch(() => { alert(txt); });
+}
+
+// ── Tab 切換 ──────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.remove('active');
+    if (['order','orders','admin'][i] === tab) t.classList.add('active');
+  });
+  ['order','orders','admin'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'block':'none'; });
+  if (tab === 'orders') renderOrders();
+  if (tab === 'admin' && state.adminLoggedIn) { renderStats(); renderAdminOrders(); renderMenuEdit(); }
+}
+
+// ── 初始化 ────────────────────────────────────────────
+loadState(); renderDeadline(); renderMenu();
+setInterval(() => { renderDeadline(); }, 30000);
+</script>
+</body>
+</html>
